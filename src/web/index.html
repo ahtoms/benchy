@@ -1,0 +1,26 @@
+<html>
+<head>
+    <title>Leaderboard</title>
+</head>
+<body>
+    <div id="">
+        <table>
+            <thead>
+                <tr>
+                    <td>Who</td>
+                    <td>Submission No.</td>
+                    <td v-for="t in tests">{{ t.name }}</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="s in submissions">
+                    <td>{{ s.id }}</td>
+                    <td>{{ s.sub_no }}</td>
+                    <!-- Contain check if t.time is non-numeric -->
+                    <td v-for="t in s.tests">{{ t.time }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
