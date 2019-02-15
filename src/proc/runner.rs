@@ -1,7 +1,9 @@
 
 use std::process::Command;
-use serde::{Deserialize, Serialize};
 use std::fs;
+
+use serde::{Deserialize, Serialize};
+use base64::decode;
 
 //Utilising same level module
 use crate::routes::submit::SubmissionRequest;
@@ -13,20 +15,24 @@ pub struct Runner {
     execute_cmd: String,
     cleanup_cmd: Option<String>,
     data_interp_cmd: Option<String>,
-    /* input extra fields for holding data */
+    path: String,
 }
 
 impl Runner {
 
     ///
     /// Creates a new Runner object for running submissions
-    pub fn new(prepare_cmd: Option<String>, execute: String, cleanup_cmd: Option<String>,
-        data_interp_cmd: Option<String>) -> Runner {
+    pub fn new(prepare_cmd: Option<String>,
+        execute_cmd: String,
+        cleanup_cmd: Option<String>,
+        data_interp_cmd: Option<String>,
+        path: String) -> Runner {
             Runner {
-                prepare_cmd: prepare_cmd,
-                execute_cmd: execute,
-                cleanup_cmd: cleanup_cmd,
-                data_interp_cmd: data_interp_cmd
+                prepare_cmd,
+                execute_cmd,
+                cleanup_cmd,
+                data_interp_cmd,
+                path
             }
     }
     
@@ -63,6 +69,10 @@ impl Runner {
     /// execute the commands and benchmark
     pub fn run(&self, sub: SubmissionRequest) {
         //TODO: Use SubmissionRequest with run_cmd
+        let data = decode(sub.data);
+
+
+
         if let Some(ref s) = self.prepare_cmd {
             Runner::run_cmd(s);
         }

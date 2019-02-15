@@ -1,6 +1,12 @@
 extern crate actix_web;
 extern crate serde_json;
 extern crate futures;
+extern crate base64;
+
+macro_rules! defaults {
+    (PORT) => (6776);
+    (HOST) => ("127.0.0.1")
+}
 
 mod routes;
 mod proc;
@@ -15,18 +21,20 @@ use actix_web::{server, App, fs};
 use proc::runner::Runner;
 use routes::submit::{SubmissionRequest};
 
-macro_rules! defaults { 
-    (PORT) => (6776);
-    (HOST) => ("127.0.0.1") 
-}
 
+
+/// Receive method will listen to the rx channel
+/// TODO: Move to separate module
 fn receive(runner: Runner, rx: Receiver<SubmissionRequest>) {
     loop {
         match rx.recv() {
             Ok(req) => {
                 runner.run(req);
             },
-            Err(e) => { eprintln!("{}", e); }
+            Err(e) => {
+                eprintln!("{}", e);
+                break;
+            }
         }
     }
 }
@@ -47,7 +55,8 @@ fn get_args() -> (u16, Option<String>) {
     if let Some(pth) = env::args().nth(2) {
         path = Some(pth);
     }
-    return (port, path);
+
+    (port, path)
 }
 
 ///
@@ -60,9 +69,10 @@ fn go(tx: Sender<SubmissionRequest>) -> App {
         .unwrap()
         .show_files_listing());
     let app = web::register_index(app);
-    let app = routes::submit::register_routes(app, tx);
-    return app;
+    routes::submit::register_routes(app, tx)
 }
+
+
 
 fn main() {
     let (tx, rx): (Sender<SubmissionRequest>, Receiver<SubmissionRequest>) = channel();
@@ -73,7 +83,7 @@ fn main() {
         //This is can be considered asynchronous.
     })
     .bind(format!("{}:{}", defaults!(HOST), port))
-    .expect(format!("Cannot bind to port {}", port).as_ref())
+    .unwrap_or_else(|_| panic!("Cannot bind to port {}", port))
     .run();
     
     
@@ -94,12 +104,9 @@ fn main() {
             for line in stdin.lock().lines() {
                 //Handle input, TODO: Command pattern'd 
                 //Here is a simple echo
-                match line {
-                    Ok(l) => println!("Echo: {}", l),
-                    _ => {}
+                if let Ok(l) = line {
+                    println!("Echo: {}", l)
                 }
-                
-            
             }
         }
     }
