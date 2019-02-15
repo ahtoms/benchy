@@ -1,6 +1,8 @@
 
 use std::process::Command;
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 
 use serde::{Deserialize, Serialize};
 use base64::decode;
@@ -67,11 +69,24 @@ impl Runner {
     ///
     /// Once the runner has been set up it will be able to
     /// execute the commands and benchmark
-    pub fn run(&self, sub: SubmissionRequest) {
+    pub fn run(&self, sub: SubmissionRequest) -> std::io::Result<()> {
         //TODO: Use SubmissionRequest with run_cmd
-        let data = decode(sub.data);
+        let data = decode(&sub.data).unwrap();
+        //Create a temporary file
+        //TODO: Pipe data into Command instead using Stdio::piped();
+        {
+            let mut dump = File::create("./tmp.zip")?;
+            dump.write_all(&data)?;
+            dump.sync_all()?;
+        }
 
-
+        //Executes an unzip operation on a piped file
+        Command::new("unzip")
+            .arg("./tmp.zip")
+            .arg("-d")
+            .arg(format!("{}/{}", self.path, sub.username))
+            .spawn()
+            .expect("Failed to execute the command given.");
 
         if let Some(ref s) = self.prepare_cmd {
             Runner::run_cmd(s);
@@ -83,6 +98,8 @@ impl Runner {
         if let Some(ref s) = self.data_interp_cmd {
             Runner::run_cmd(s);
         }
+
+        Ok(())
     }
 
 }

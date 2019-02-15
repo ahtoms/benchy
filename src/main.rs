@@ -29,7 +29,10 @@ fn receive(runner: Runner, rx: Receiver<SubmissionRequest>) {
     loop {
         match rx.recv() {
             Ok(req) => {
-                runner.run(req);
+                match runner.run(req) {
+                    Ok(_) => println!("Runner Executed Successfully"),
+                    _ => println!("Runner failed to execute")
+                }
             },
             Err(e) => {
                 eprintln!("{}", e);

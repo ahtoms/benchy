@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 ///Username and data which is a base64 string
 #[derive(Deserialize, Serialize)]
 pub struct SubmissionRequest{
-    username: String,
-    data: String,   
+    pub username: String,
+    pub data: String,
 }
 
 ///Just a simple response to pass back to the
