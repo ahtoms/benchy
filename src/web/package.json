@@ -1,0 +1,22 @@
+{
+  "name": "benchy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahtoms/benchy.git"
+  },
+  "author": "Tyson Thomas <me@ahtoms.xyz>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ahtoms/benchy/issues"
+  },
+  "homepage": "https://github.com/ahtoms/benchy#readme",
+  "dependencies": {
+    "vue": "^2.6.10"
+  }
+}
