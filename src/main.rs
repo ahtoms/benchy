@@ -78,12 +78,14 @@ fn go(tx: Sender<SubmissionRequest>) -> App {
 
 
 fn main() {
+
+
     let (tx, rx): (Sender<SubmissionRequest>, Receiver<SubmissionRequest>) = channel();
     let (port, path) = get_args();
     server::new( move || {
         go(tx.clone()) //Need to clone the tx channel for closure so it maintains a copy
         //that isn't bound by main(). 
-        //This is can be considered asynchronous.
+        //This object can considered as an asynchronous object.
     })
     .bind(format!("{}:{}", defaults!(HOST), port))
     .unwrap_or_else(|_| panic!("Cannot bind to port {}", port))
