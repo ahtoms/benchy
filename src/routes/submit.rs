@@ -21,13 +21,13 @@ pub struct SubmissionResponse {
 
 ///
 /// Registers the routes for submit, passes App and a sender  channel so any
-/// SubmissionRequest cna be passed to the Runner
+/// SubmissionRequest can be passed to the Runner
 pub fn register_routes(app: App, tx: Sender<SubmissionRequest>) -> App {
     app.resource("/submit", move |r| {
         let t = tx; //We want to scope in tx for the closure
         r.method(Method::POST).with(move |req: Json<SubmissionRequest>| -> Result<Json<SubmissionResponse>> {
             let data = req.into_inner();
-            t.send(data).unwrap();
+            t.send(data).unwrap(); //Sends to via channel
             Ok(Json(SubmissionResponse { result: 1 }))        
         })
     })
