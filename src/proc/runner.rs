@@ -24,6 +24,7 @@ impl Runner {
 
     ///
     /// Creates a new Runner object for running submissions
+    #[allow(dead_code)]
     pub fn new(prepare_cmd: Option<String>,
         execute_cmd: String,
         cleanup_cmd: Option<String>,
