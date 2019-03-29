@@ -3,14 +3,10 @@ extern crate serde_json;
 extern crate futures;
 extern crate base64;
 
-macro_rules! defaults {
-    (PORT) => (6776);
-    (HOST) => ("127.0.0.1")
-}
-
 mod routes;
 mod proc;
 mod web;
+mod db;
 
 use std::env;
 use std::io::{self, BufRead};
@@ -21,7 +17,10 @@ use actix_web::{server, App, fs};
 use proc::runner::Runner;
 use routes::submit::{SubmissionRequest};
 
-
+macro_rules! defaults {
+    (PORT) => (6776);
+    (HOST) => ("127.0.0.1")
+}
 
 /// Receive method will listen to the rx channel
 /// TODO: Move to separate module
@@ -66,13 +65,16 @@ fn get_args() -> (u16, Option<String>) {
 /// Compiles the application object based on the register modules
 /// TODO: Cleanup go() method and server initialisation
 ///
-fn go(tx: Sender<SubmissionRequest>) -> App {
+fn go(tx: Sender<SubmissionRequest>, benchinfo: routes::info::BenchmarkInfo) -> App {
     let app = App::new();
     let app = app.handler("/static", fs::StaticFiles::new(".")
         .unwrap()
         .show_files_listing());
+
     let app = web::register_index(app);
-    routes::submit::register_routes(app, tx)
+    let app = routes::info::register_routes(app, benchinfo);
+    let app = routes::submit::register_routes(app, tx);
+    app
 }
 
 
@@ -83,8 +85,11 @@ fn main() {
     let (tx, rx): (Sender<SubmissionRequest>, Receiver<SubmissionRequest>) = channel();
     let (port, path) = get_args();
     server::new( move || {
-        go(tx.clone()) //Need to clone the tx channel for closure so it maintains a copy
-        //that isn't bound by main(). 
+        go(tx.clone(), routes::info::BenchmarkInfo {
+            name: String::from("Test"),
+            tests: Vec::new()
+        })
+        //that isn't bound by main().
         //This object can considered as an asynchronous object.
     })
     .bind(format!("{}:{}", defaults!(HOST), port))

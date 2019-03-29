@@ -6,7 +6,7 @@ use std::path::PathBuf;
 ///Returns the index page
 ///
 fn index(_req: &HttpRequest) -> Result<NamedFile> {
-    let f = PathBuf::from("index.html");
+    let f = PathBuf::from("./index.html");
     Ok(NamedFile::open(f)?)
 }
 
