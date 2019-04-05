@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 ///TODO: Move to separate file
 #[derive(Deserialize, Serialize)]
 pub struct SubmissionRequest{
-    pub username: String,
+    pub identifier: String,
     pub data: String,
 }
 

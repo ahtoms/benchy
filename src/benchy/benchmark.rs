@@ -31,5 +31,3 @@ pub struct BenchyConfig {
     pub path: String,
 }
 
-
-

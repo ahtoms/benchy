@@ -80,7 +80,7 @@ impl Runner {
         Command::new("unzip")
             .arg("./tmp.zip")
             .arg("-d")
-            .arg(format!("{}/{}", self.path, sub.username))
+            .arg(format!("{}/{}", self.path, sub.identifier))
             .spawn()
             .expect("Failed to execute the command given.");
 
@@ -92,7 +92,7 @@ impl Runner {
         let data = Runner::run_cmd_extract_output(self.execute_cmd.as_ref());
         Runner::try_run(&self.cleanup_cmd);
 
-        self.save_results(&sub.username, &data);
+        self.save_results(&sub.identifier, &data);
         Ok(())
     }
 
