@@ -5,99 +5,100 @@ extern crate base64;
 
 mod routes;
 mod proc;
-mod web;
 mod db;
+mod benchy;
 
 use std::env;
-use std::io::{self, BufRead};
+use std::fs::File;
+use std::io::{BufReader};
 use std::sync::mpsc::{channel, Receiver, Sender};
-
 use actix_web::{server, App, fs};
-
 use proc::runner::Runner;
-use routes::submit::{SubmissionRequest};
+use crate::benchy::robjs::SubmissionRequest;
+use crate::benchy::benchmark::{BenchyConfig, BenchmarkInfo};
 
 macro_rules! defaults {
-    (PORT) => (6776);
     (HOST) => ("127.0.0.1")
 }
 
-///
-/// Retrieves the arguments from command line.
-///
-fn get_args() -> (u16, Option<String>) {
-    let mut port : u16 = defaults!(PORT);
-    let mut path = None;
-    
-    if let Some(ps) = env::args().nth(1) {
-        match ps.parse::<u16>() {
-            Ok(p) => { port = p; },
-            _ => { /*eprintln!("Unable to parse port number")*/ path = Some(ps) }
-        }
-    }
-    if let Some(pth) = env::args().nth(2) {
-        path = Some(pth);
-    }
+static HELP: &'static str = "
+    To run benchy, specify a configuration file with the following properties:
 
-    (port, path)
+    - name: String
+    - port: Integer
+    - root: String (path to serve html files)
+
+    - prepare_cmd: String, Optional (script to prepare environment before each run),
+    - execute_cmd: String (script to execute test (output will be extracted),
+    - cleanup_cmd: String, Optional (script to clean up after test),
+    - path: String (location that will be used)
+    
+    - tests: Array (String), Provides test information
+
+";
+
+///
+/// Loads the configuration file specified in the command line
+fn load_config() -> Result<BenchyConfig, &'static str> {
+    if let Some(ps) = env::args().nth(1) {
+        if ps == "--help" {
+            Err(HELP)
+        } else {
+            match File::open(ps) {
+                Ok(f) => {
+                    let reader = BufReader::new(f);
+                    match serde_json::from_reader::<_, BenchyConfig>(reader) {
+                        Ok(config) => Ok(config),
+                        Err(_) => Err("Unable to parse config file")
+                    }
+                },
+                Err(_) => Err("Unable to open file")
+            }
+        }
+    } else {
+        Err(HELP)
+    }
 }
 
 ///
 /// Compiles the application object based on the register modules
-/// TODO: Cleanup go() method and server initialisation
-///
-fn go(tx: Sender<SubmissionRequest>, benchinfo: routes::info::BenchmarkInfo) -> App {
+fn go(tx: Sender<SubmissionRequest>, benchinfo: BenchmarkInfo) -> App {
     let app = App::new();
-    let app = app.handler("/static", fs::StaticFiles::new(".")
+    let app = app.handler("/", fs::StaticFiles::new(benchinfo.root.to_string())
         .unwrap()
         .show_files_listing());
-    let app = web::register_index(app);
     let app = routes::info::register_routes(app, benchinfo);
     let app = routes::submit::register_routes(app, tx);
     app
 }
 
 
-
 fn main() {
-
     let (tx, rx): (Sender<SubmissionRequest>, Receiver<SubmissionRequest>) = channel();
-    let (port, path) = get_args();
-
-    server::new( move || {
-        go(tx.clone(), routes::info::BenchmarkInfo {
-            name: String::from("Test"),
-            tests: Vec::new()
-        })
-        //that isn't bound by main().
-        //This object can considered as an asynchronous object.
-    })
-    .bind(format!("{}:{}", defaults!(HOST), port))
-    .unwrap_or_else(|_| panic!("Cannot bind to port {}", port))
-    .run();
-    
-    
-    //Setup command line or read configuration for runner
-    match path {
-        Some(path) => {
-            match Runner::try_from(path) {
-                Some(mut runner) => {
-                    runner.receive(rx);
-                },
-                None => { eprintln!("Failed to load config, check path supplied"); }
-            }
-        
+    match load_config() {
+        Ok(config) => {
+            let port = config.port;
+            let root = config.root;
+            let name = config.name;
+            let tests = config.tests;
+            let mut runner = Runner::new(
+                config.prepare_cmd,
+                config.execute_cmd,
+                config.cleanup_cmd,
+                config.path,
+            );
+            server::new( move || {
+                go(tx.clone(), BenchmarkInfo {
+                    root: String::from(root.as_ref()),
+                    name: String::from(name.as_ref()),
+                    tests: Vec::from(tests.as_ref())
+                })
+            })
+            .bind(format!("{}:{}", defaults!(HOST), port))
+            .unwrap_or_else(|_| panic!("Cannot bind to port {}", port))
+            .run();
+            runner.receive(rx);
         },
-        None => {
-            //Command line mode
-            let stdin = io::stdin();
-            for line in stdin.lock().lines() {
-                //Handle input, TODO: Command pattern'd 
-                //Here is a simple echo
-                if let Ok(l) = line {
-                    println!("Echo: {}", l)
-                }
-            }
-        }
+        Err(e) => eprintln!("{}", e)
     }
 }

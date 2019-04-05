@@ -2,23 +2,7 @@
 
 use std::sync::mpsc::Sender;
 use actix_web::{Json, App, http::Method, Result};
-use serde::{Deserialize, Serialize};
-
-
-///SubmissionRequest object which contains
-///Username and data which is a base64 string
-///TODO: Move to separate file
-#[derive(Deserialize, Serialize)]
-pub struct SubmissionRequest{
-    pub username: String,
-    pub data: String,
-}
-
-///Just a simple response to pass back to the
-#[derive(Serialize)]
-pub struct SubmissionResponse {
-    result: u8,
-}
+use crate::benchy::robjs::{SubmissionRequest, SubmissionResponse};
 
 ///
 /// Registers the routes for submit, passes App and a sender  channel so any

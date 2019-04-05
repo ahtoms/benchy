@@ -4,15 +4,13 @@ use std::fs;
 use std::fs::File;
 use std::io::{Write, Read};
 
-use serde::{Deserialize, Serialize};
 use base64::decode;
 use std::sync::mpsc::{Receiver};
 
 //Utilising same level module
-use crate::routes::submit::SubmissionRequest;
+use crate::benchy::robjs::SubmissionRequest;
 use crate::db::conn;
 
-#[derive(Deserialize, Serialize)]
 pub struct Runner {
     prepare_cmd: Option<String>,
     execute_cmd: String,
@@ -24,7 +22,6 @@ impl Runner {
 
     ///
     /// Creates a new Runner object for running submissions
-    #[allow(dead_code)]
     pub fn new(prepare_cmd: Option<String>,
         execute_cmd: String,
         cleanup_cmd: Option<String>,
@@ -36,22 +33,6 @@ impl Runner {
                 path
             }
     }
-    
-    ///
-    /// Attempts to load the file and deserialize it using serde
-    /// If it is unable to deserialise, return None,
-    /// TODO: When TryFrom trait is in Stable, use trait
-    pub fn try_from(path: String) -> Option<Self> {
-        match fs::read_to_string(path) {
-            Ok(contents) => {
-                match serde_json::from_str::<Runner>(&contents) {
-                    Ok(runner) => Some(runner),
-                    Err(_) => None
-                }        
-            },
-            Err(_) => None
-        }
-    }
 
     ///
     /// run_cmd will take a command and TODO: arguments
@@ -59,7 +40,7 @@ impl Runner {
     /// It will latch onto the stdout and use it for processing
     /// TODO: time the execute
     pub fn try_run(command: &Option<String>) {
-        //NOTE: Unix only ATM, create variant for Windows
+        //NOTE: Unix only ATM, create variant for Windows later
         if let Some(ref s) = command {
             Command::new(s)
                 .output()
@@ -115,7 +96,10 @@ impl Runner {
         Ok(())
     }
 
+
     /// Receive method will listen to the rx channel
+    /// Once object has been received it will attempt to execute
+    /// the submission against the binded commands
     pub fn receive(&mut self, rx: Receiver<SubmissionRequest>) {
         loop {
             match rx.recv() {
@@ -134,15 +118,12 @@ impl Runner {
     }
 
 
-
+    /// Saves the result after the test has been executed
+    /// It will call the db connection class to insert a submission
     fn save_results(&self, ident: &String, data: &String) {
         match conn::insert_sub(&conn::establish(), ident, data) {
-            Ok(v) => {
-                println!("Result sent, return value: {}", v);
-            },
-            Err(_) => {
-                eprintln!("Unable to insert submission results");
-            }
+            Ok(v) => { println!("Result sent, return value: {}", v); },
+            Err(_) => { eprintln!("Unable to insert submission results"); }
         }
     }
 
