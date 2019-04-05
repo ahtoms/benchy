@@ -9,6 +9,7 @@ use crate::db::conn; //huh, 2018 edition is kind of neat
 
 ///BenchmarkInfo object which contains
 ///benchmark name and test names
+/// TODO: Move to separate file
 #[derive(Serialize, Deserialize)]
 pub struct BenchmarkInfo {
     pub name: String,

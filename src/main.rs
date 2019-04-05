@@ -22,25 +22,6 @@ macro_rules! defaults {
     (HOST) => ("127.0.0.1")
 }
 
-/// Receive method will listen to the rx channel
-/// TODO: Move to separate module
-fn receive(runner: Runner, rx: Receiver<SubmissionRequest>) {
-    loop {
-        match rx.recv() {
-            Ok(req) => {
-                match runner.run(req) {
-                    Ok(_) => println!("Runner Executed Successfully"),
-                    _ => println!("Runner failed to execute")
-                }
-            },
-            Err(e) => {
-                eprintln!("{}", e);
-                break;
-            }
-        }
-    }
-}
-
 ///
 /// Retrieves the arguments from command line.
 ///
@@ -51,7 +32,7 @@ fn get_args() -> (u16, Option<String>) {
     if let Some(ps) = env::args().nth(1) {
         match ps.parse::<u16>() {
             Ok(p) => { port = p; },
-            _ => { eprintln!("Unable to parse port number") }
+            _ => { /*eprintln!("Unable to parse port number")*/ path = Some(ps) }
         }
     }
     if let Some(pth) = env::args().nth(2) {
@@ -70,7 +51,6 @@ fn go(tx: Sender<SubmissionRequest>, benchinfo: routes::info::BenchmarkInfo) -> 
     let app = app.handler("/static", fs::StaticFiles::new(".")
         .unwrap()
         .show_files_listing());
-
     let app = web::register_index(app);
     let app = routes::info::register_routes(app, benchinfo);
     let app = routes::submit::register_routes(app, tx);
@@ -81,9 +61,9 @@ fn go(tx: Sender<SubmissionRequest>, benchinfo: routes::info::BenchmarkInfo) -> 
 
 fn main() {
 
-
     let (tx, rx): (Sender<SubmissionRequest>, Receiver<SubmissionRequest>) = channel();
     let (port, path) = get_args();
+
     server::new( move || {
         go(tx.clone(), routes::info::BenchmarkInfo {
             name: String::from("Test"),
@@ -101,8 +81,8 @@ fn main() {
     match path {
         Some(path) => {
             match Runner::try_from(path) {
-                Some(runner) => {
-                    receive(runner, rx);
+                Some(mut runner) => {
+                    runner.receive(rx);
                 },
                 None => { eprintln!("Failed to load config, check path supplied"); }
             }

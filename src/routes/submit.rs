@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 ///SubmissionRequest object which contains
 ///Username and data which is a base64 string
+///TODO: Move to separate file
 #[derive(Deserialize, Serialize)]
 pub struct SubmissionRequest{
     pub username: String,

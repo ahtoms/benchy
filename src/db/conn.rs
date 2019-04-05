@@ -1,6 +1,6 @@
 
 use serde::{Serialize};
-use rusqlite::{Connection, NO_PARAMS, OpenFlags, Result};
+use rusqlite::{Connection, NO_PARAMS, OpenFlags, Result, types::ToSql};
 
 
 macro_rules! DB_DEFAULTS {
@@ -13,10 +13,15 @@ macro_rules! DB_DEFAULTS {
         );"
     );
     (DB_GET_SUBS) => (
-        "SELECT * FROM submissions";
+        "SELECT * FROM submissions;";
     );
+    (DB_INSERT_SUB) => (
+        "INSERT INTO submissions
+            VALUES (?1, ?2);"
+    )
 }
 
+///TODO: Move BenchmarkSubmission to separate file
 #[derive(Serialize)]
 pub struct BenchmarkSubmission {
     pub sub_id: i32,
@@ -59,5 +64,12 @@ pub fn get_subs(con: &Connection) -> Vec<BenchmarkSubmission> {
         }
     }).unwrap().filter_map(Result::ok).collect();
     res
+}
+
+pub fn insert_sub(conn: &Connection, ident: &String, data: &String) -> Result<usize> {
+    conn.execute(
+        DB_DEFAULTS!(DB_INSERT_SUB),
+        &[ident as &ToSql, data as &ToSql]
+    )
 }
 
