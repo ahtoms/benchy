@@ -2,7 +2,7 @@
 
 ## What is it?
 
-Bench is a quick and dirty benchmark hoster. Feed it a configuration file and it will accept submissions, execute them and then store the results in a local sqlite database. Once a submission is received it will send it to the test runner to be executed.
+Benchy is a quick and dirty benchmark hoster. Feed it a configuration file and it will accept submissions, execute them and then store the results in a local sqlite database. Once a submission is received it will send it to the test runner to be executed.
 
 
 ## Okay, how do I use it?
