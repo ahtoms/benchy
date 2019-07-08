@@ -14,6 +14,7 @@ pub struct BenchmarkSubmission {
 pub struct BenchmarkInfo {
     pub root: String,
     pub name: String,
+    pub index: String,
     pub tests: Vec<String>
 }
 
@@ -23,6 +24,7 @@ pub struct BenchyConfig {
     pub root: String,
     pub port: u16,
     pub tests: Vec<String>,
+    pub index: String,
 
     //runner variables
     pub prepare_cmd: Option<String>,

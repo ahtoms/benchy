@@ -7,8 +7,8 @@ macro_rules! DB_DEFAULTS {
     (DB_PATH) => ("./benchy.db");
     (DB_TBL) => (
         "CREATE TABLE submissions (
-            sub_id SERIAL PRIMARY KEY,
-            ident VARCHAR(32),
+            sub_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ident TEXT,
             data TEXT
         );"
     );
@@ -16,8 +16,7 @@ macro_rules! DB_DEFAULTS {
         "SELECT * FROM submissions;";
     );
     (DB_INSERT_SUB) => (
-        "INSERT INTO submissions
-            VALUES (?1, ?2);"
+        "INSERT INTO submissions(ident, data) VALUES (?1, ?2);"
     )
 }
 
@@ -42,7 +41,10 @@ pub fn establish() -> Connection {
 /// TODO: Fix unwrap() call, attempt to always guarantee that a db will be created
 pub fn create() -> Connection {
     let c = Connection::open(DB_DEFAULTS!(DB_PATH)).unwrap();
-    c.execute(DB_DEFAULTS!(DB_TBL), NO_PARAMS).unwrap();
+    match c.execute(DB_DEFAULTS!(DB_TBL), NO_PARAMS) {
+        Ok(_) => { println!("Table was created"); },
+        Err(_) => {println!("Table was not created"); }
+    }
     c
 }
 

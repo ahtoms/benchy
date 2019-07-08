@@ -1,8 +1,3 @@
-extern crate actix_web;
-extern crate serde_json;
-extern crate futures;
-extern crate base64;
-
 mod routes;
 mod proc;
 mod db;
@@ -11,8 +6,10 @@ mod benchy;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader};
+use std::thread;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use actix_web::{server, App, fs};
+use std::path::PathBuf;
+use actix_web::{server, App, fs, http::Method, Result, fs::NamedFile};
 use proc::runner::Runner;
 use crate::benchy::robjs::SubmissionRequest;
 use crate::benchy::benchmark::{BenchyConfig, BenchmarkInfo};
@@ -27,6 +24,7 @@ const HELP: &'static str = "
     - name: String
     - port: Integer
     - root: String (path to serve html files)
+    - index: String (file located within root to be set to /index)
 
     - prepare_cmd: String, Optional (script to prepare environment before each run),
     - execute_cmd: String (script to execute test (output will be extracted),
@@ -62,14 +60,24 @@ fn load_config() -> Result<BenchyConfig, &'static str> {
     }
 }
 
+
 ///
 /// Compiles the application object based on the register modules
 ///
 fn go(tx: Sender<SubmissionRequest>, benchinfo: BenchmarkInfo) -> App {
     let root = benchinfo.root.clone();
+    let mut index = root.clone();
+    index.push_str("/");
+    index.push_str(benchinfo.index.as_str());
     let app = App::new();
     let app = routes::info::register_routes(app, benchinfo);
     let app = routes::submit::register_routes(app, tx);
+    let app = app.resource("/index", move |r| {
+        let idx = index.clone();
+        r.method(Method::GET).f(move |_| -> Result<NamedFile> {
+            Ok(NamedFile::open(PathBuf::from(idx.as_str()))?)
+        }
+    )});
     let app = app.handler("/static/", fs::StaticFiles::new(root)
         .unwrap()
         .show_files_listing());
@@ -85,15 +93,22 @@ fn main() {
             let root = config.root;
             let name = config.name;
             let tests = config.tests;
+            let index = config.index;
             let mut runner = Runner::new(
                 config.prepare_cmd,
                 config.execute_cmd,
                 config.cleanup_cmd,
                 config.path,
             );
+
+            let thread_handle = thread::spawn(move || {
+                runner.receive(rx);
+            });
+
             server::new( move || {
                 go(tx.clone(), BenchmarkInfo {
                     root: root.clone(),
+                    index: index.clone(),
                     name: name.clone(),
                     tests: Vec::from(tests.as_ref())
                 })
@@ -101,7 +116,10 @@ fn main() {
             .bind(format!("{}:{}", defaults!(HOST), port))
             .unwrap_or_else(|_| panic!("Cannot bind to port {}", port))
             .run();
-            runner.receive(rx);
+            match thread_handle.join() {
+                Err(_) => { eprintln!("Application exited abnormally"); }
+                _ => {}
+            }
         },
         Err(e) => eprintln!("{}", e)
     }

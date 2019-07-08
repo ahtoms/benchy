@@ -42,7 +42,10 @@ impl Runner {
     pub fn try_run(command: &Option<String>) {
         //NOTE: Unix only ATM, create variant for Windows later
         if let Some(ref s) = command {
-            Command::new(s)
+            eprintln!("{}", s);
+            Command::new("bash")
+                .arg("-c")
+                .arg(s)
                 .output()
                 .expect("Failed to execute the command given.");
         }
@@ -50,7 +53,9 @@ impl Runner {
 
     pub fn run_cmd_extract_output(command: &str) -> String {
         let mut output = String::new();
-        let proc = Command::new(command)
+        let proc = Command::new("bash")
+                        .arg("-c")
+                        .arg(command)
                         .stdout(Stdio::piped())
                         .spawn()
                         .unwrap();
@@ -80,7 +85,7 @@ impl Runner {
         Command::new("unzip")
             .arg("./tmp.zip")
             .arg("-d")
-            .arg(format!("{}/{}", self.path, sub.identifier))
+            .arg(format!("{}/{}", self.path, sub.ident))
             .spawn()
             .expect("Failed to execute the command given.");
 
@@ -92,7 +97,7 @@ impl Runner {
         let data = Runner::run_cmd_extract_output(self.execute_cmd.as_ref());
         Runner::try_run(&self.cleanup_cmd);
 
-        self.save_results(&sub.identifier, &data);
+        self.save_results(&sub.ident, &data);
         Ok(())
     }
 
@@ -104,6 +109,7 @@ impl Runner {
         loop {
             match rx.recv() {
                 Ok(req) => {
+                    eprintln!("{}", req.ident);
                     match self.run(req) {
                         Ok(_) => println!("Runner Executed Successfully"),
                         _ => println!("Runner failed to execute")
@@ -121,9 +127,10 @@ impl Runner {
     /// Saves the result after the test has been executed
     /// It will call the db connection class to insert a submission
     fn save_results(&self, ident: &String, data: &String) {
+        println!("Submission: {}--{}", ident, data);
         match conn::insert_sub(&conn::establish(), ident, data) {
             Ok(v) => { println!("Result sent, return value: {}", v); },
-            Err(_) => { eprintln!("Unable to insert submission results"); }
+            Err(e) => { eprintln!("Unable to insert submission results: {}", e); }
         }
     }
 
