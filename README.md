@@ -14,11 +14,12 @@ Here is an example of the following script:
 {
     "name" : "My Project Name",
     "port" : 9001,
-    "root" : "~/web_files"
+    "root" : "~/web_files",
     "prepare_cmd" : "~/project_test/prepare.sh",
     "execute_cmd" : "~/project_test/execute.sh",
     "cleanup_cmd" : "~/project_test/cleanup.sh",
-    "path" : "~/project_test/"
+    "path" : "~/project_test/",
+    "tests" : []
 }
 ```
 

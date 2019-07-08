@@ -41,8 +41,7 @@ pub fn establish() -> Connection {
 
 /// TODO: Fix unwrap() call, attempt to always guarantee that a db will be created
 pub fn create() -> Connection {
-    let c = Connection::open_with_flags(DB_DEFAULTS!(DB_PATH),
-        OpenFlags::SQLITE_OPEN_CREATE).unwrap();
+    let c = Connection::open(DB_DEFAULTS!(DB_PATH)).unwrap();
     c.execute(DB_DEFAULTS!(DB_TBL), NO_PARAMS).unwrap();
     c
 }

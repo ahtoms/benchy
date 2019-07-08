@@ -21,7 +21,7 @@ macro_rules! defaults {
     (HOST) => ("127.0.0.1")
 }
 
-static HELP: &'static str = "
+const HELP: &'static str = "
     To run benchy, specify a configuration file with the following properties:
 
     - name: String
@@ -39,6 +39,8 @@ static HELP: &'static str = "
 
 ///
 /// Loads the configuration file specified in the command line
+/// TODO: Check directory existance
+/// TODO: Check for permissions
 fn load_config() -> Result<BenchyConfig, &'static str> {
     if let Some(ps) = env::args().nth(1) {
         if ps == "--help" {
@@ -62,13 +64,15 @@ fn load_config() -> Result<BenchyConfig, &'static str> {
 
 ///
 /// Compiles the application object based on the register modules
+///
 fn go(tx: Sender<SubmissionRequest>, benchinfo: BenchmarkInfo) -> App {
+    let root = benchinfo.root.clone();
     let app = App::new();
-    let app = app.handler("/", fs::StaticFiles::new(benchinfo.root.to_string())
-        .unwrap()
-        .show_files_listing());
     let app = routes::info::register_routes(app, benchinfo);
     let app = routes::submit::register_routes(app, tx);
+    let app = app.handler("/static/", fs::StaticFiles::new(root)
+        .unwrap()
+        .show_files_listing());
     app
 }
 
@@ -89,8 +93,8 @@ fn main() {
             );
             server::new( move || {
                 go(tx.clone(), BenchmarkInfo {
-                    root: String::from(root.as_ref()),
-                    name: String::from(name.as_ref()),
+                    root: root.clone(),
+                    name: name.clone(),
                     tests: Vec::from(tests.as_ref())
                 })
             })
