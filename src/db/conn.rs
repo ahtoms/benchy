@@ -39,13 +39,18 @@ pub fn establish() -> Connection {
 }
 
 /// TODO: Fix unwrap() call, attempt to always guarantee that a db will be created
+/// Should be able to create an in memory database as worst case scenario
 pub fn create() -> Connection {
-    let c = Connection::open(DB_DEFAULTS!(DB_PATH)).unwrap();
-    match c.execute(DB_DEFAULTS!(DB_TBL), NO_PARAMS) {
-        Ok(_) => { println!("Table was created"); },
-        Err(_) => {println!("Table was not created"); }
+    if let Ok(c) = Connection::open(DB_DEFAULTS!(DB_PATH)) {
+        match c.execute(DB_DEFAULTS!(DB_TBL), NO_PARAMS) {
+            Ok(_) => { println!("Table was created"); },
+            Err(_) => {println!("Table was not created"); }
+        }
+        return c;
+    } else {
+        //At this point, *Force* panic if database cannot open
+        return Connection::open_in_memory().unwrap();
     }
-    c
 }
 
 /// Retrieves the submissions made to the database

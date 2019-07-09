@@ -10,7 +10,8 @@ use std::thread;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::path::PathBuf;
 use actix_web::{server, App, fs, http::Method, Result, fs::NamedFile};
-use proc::runner::Runner;
+
+use crate::proc::runner::Runner;
 use crate::benchy::robjs::SubmissionRequest;
 use crate::benchy::benchmark::{BenchyConfig, BenchmarkInfo};
 

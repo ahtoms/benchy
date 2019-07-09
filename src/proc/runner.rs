@@ -40,15 +40,16 @@ impl Runner {
     /// It will latch onto the stdout and use it for processing
     /// TODO: time the execute
     pub fn try_run(command: &Option<String>) {
-        //NOTE: Unix only ATM, create variant for Windows later
+        //TODO: Unix only ATM, create variant for Windows later
         if let Some(ref s) = command {
-            let status = Command::new("bash")
+            if let Ok(status) = Command::new("bash")
                 .arg("-c")
                 .arg(s)
-                .status()
-                .expect("Failed to execute the command given.");
-            if !status.success() {
-                eprintln!("Command exited with {}", status);
+                .status() {
+
+                if !status.success() {
+                    eprintln!("Command exited with {}", status);
+                }
             }
         }
     }
