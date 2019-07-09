@@ -77,17 +77,19 @@ impl Runner {
 
             let cur = Cursor::new(data);
             let base_dir = format!("{}/{}", self.path, sub.ident);
-            let mut zip_read = ZipArchive::new(cur).unwrap();
-            for i in 0..zip_read.len() {
-                if let Ok(mut f) = zip_read.by_index(i) {
-                    let path = format!("{}/{}", base_dir, f.name());
-                    if f.is_dir() {
-                        fs::create_dir(path)?
-                    } else {
-                        if let Ok(mut writable) = File::create(path) {
-                            let mut contents: Vec<u8> = Vec::new();
-                            if let Ok(_) = f.read_to_end(&mut contents) {
-                                writable.write_all(contents.as_ref())?;
+
+            if let Ok(mut zip_read) = ZipArchive::new(cur) {
+                for i in 0..zip_read.len() {
+                    if let Ok(mut f) = zip_read.by_index(i) {
+                        let path = format!("{}/{}", base_dir, f.name());
+                        if f.is_dir() {
+                            fs::create_dir(path)?
+                        } else {
+                            if let Ok(mut writable) = File::create(path) {
+                                let mut contents: Vec<u8> = Vec::new();
+                                if let Ok(_) = f.read_to_end(&mut contents) {
+                                    writable.write_all(contents.as_ref())?;
+                                }
                             }
                         }
                     }
