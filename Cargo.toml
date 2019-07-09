@@ -12,6 +12,7 @@ serde_derive = "1.0"
 futures = "0.1"
 base64 = "0.10.1"
 rusqlite = "0.15.0"
+zip = { git = "https://github.com/mvdnes/zip-rs.git" }
 
 [dev-dependencies]
 reqwest = "0.9.12"

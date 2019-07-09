@@ -2,12 +2,12 @@
 use std::process::{Command, Stdio};
 use std::fs;
 use std::fs::File;
-use std::io::{Write, Read};
-
-use base64::decode;
+use std::io::{Write, Read, Cursor};
 use std::sync::mpsc::{Receiver};
 
-//Utilising same level module
+use base64::decode;
+use zip::ZipArchive;
+
 use crate::benchy::robjs::SubmissionRequest;
 use crate::db::conn;
 
@@ -42,12 +42,14 @@ impl Runner {
     pub fn try_run(command: &Option<String>) {
         //NOTE: Unix only ATM, create variant for Windows later
         if let Some(ref s) = command {
-            eprintln!("{}", s);
-            Command::new("bash")
+            let status = Command::new("bash")
                 .arg("-c")
                 .arg(s)
-                .output()
+                .status()
                 .expect("Failed to execute the command given.");
+            if !status.success() {
+                eprintln!("Command exited with {}", status);
+            }
         }
     }
 
@@ -71,33 +73,33 @@ impl Runner {
     /// Once the runner has been set up it will be able to
     /// execute the commands and benchmark
     pub fn run(&self, sub: SubmissionRequest) -> std::io::Result<()> {
-        //TODO: Use SubmissionRequest with run_cmd
-        let data = decode(&sub.data).unwrap();
-        //Create a temporary file
-        //TODO: Pipe data into Command using Stdio::piped();
-        {
-            let mut dump = File::create("./tmp.zip")?;
-            dump.write_all(&data)?;
-            dump.sync_all()?;
+        if let Ok(data) = decode(&sub.data) {
+
+            let cur = Cursor::new(data);
+            let base_dir = format!("{}/{}", self.path, sub.ident);
+            let mut zip_read = ZipArchive::new(cur).unwrap();
+            for i in 0..zip_read.len() {
+                if let Ok(mut f) = zip_read.by_index(i) {
+                    let path = format!("{}/{}", base_dir, f.name());
+                    if f.is_dir() {
+                        fs::create_dir(path)?
+                    } else {
+                        if let Ok(mut writable) = File::create(path) {
+                            let mut contents: Vec<u8> = Vec::new();
+                            if let Ok(_) = f.read_to_end(&mut contents) {
+                                writable.write_all(contents.as_ref())?;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Runner::try_run(&self.prepare_cmd);
+            let data = Runner::run_cmd_extract_output(self.execute_cmd.as_ref());
+            Runner::try_run(&self.cleanup_cmd);
+            self.save_results(&sub.ident, &data);
+
         }
-
-        //Executes an unzip operation on a piped file: TODO: Replace with zip crate
-        Command::new("unzip")
-            .arg("./tmp.zip")
-            .arg("-d")
-            .arg(format!("{}/{}", self.path, sub.ident))
-            .spawn()
-            .expect("Failed to execute the command given.");
-
-        match fs::remove_file("./tmp.zip") {
-            Ok(_) => { println!("tmp.zip successfully removed"); },
-            Err(_) => { eprintln!("tmp.zip was not removed"); }
-        }
-        Runner::try_run(&self.prepare_cmd);
-        let data = Runner::run_cmd_extract_output(self.execute_cmd.as_ref());
-        Runner::try_run(&self.cleanup_cmd);
-
-        self.save_results(&sub.ident, &data);
         Ok(())
     }
 
@@ -109,7 +111,6 @@ impl Runner {
         loop {
             match rx.recv() {
                 Ok(req) => {
-                    eprintln!("{}", req.ident);
                     match self.run(req) {
                         Ok(_) => println!("Runner Executed Successfully"),
                         _ => println!("Runner failed to execute")
@@ -127,7 +128,6 @@ impl Runner {
     /// Saves the result after the test has been executed
     /// It will call the db connection class to insert a submission
     fn save_results(&self, ident: &String, data: &String) {
-        println!("Submission: {}--{}", ident, data);
         match conn::insert_sub(&conn::establish(), ident, data) {
             Ok(v) => { println!("Result sent, return value: {}", v); },
             Err(e) => { eprintln!("Unable to insert submission results: {}", e); }
