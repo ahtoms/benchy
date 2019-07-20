@@ -9,6 +9,7 @@ use std::io::{BufReader};
 use std::thread;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::path::PathBuf;
+use std::alloc::System;
 use actix_web::{server, App, fs, http::Method, Result, fs::NamedFile};
 
 use crate::proc::runner::Runner;
@@ -18,6 +19,9 @@ use crate::benchy::benchmark::{BenchyConfig, BenchmarkInfo};
 macro_rules! defaults {
     (HOST) => ("127.0.0.1")
 }
+
+#[global_allocator]
+static GLOBAL: System = System;
 
 const HELP: &'static str = "
     To run benchy, specify a configuration file with the following properties:

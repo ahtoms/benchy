@@ -16,3 +16,4 @@ zip = { git = "https://github.com/mvdnes/zip-rs.git" }
 
 [dev-dependencies]
 reqwest = "0.9.12"
+

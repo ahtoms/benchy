@@ -12,15 +12,9 @@ macro_rules! DB_DEFAULTS {
             data TEXT
         );"
     );
-    (DB_GET_SUBS) => (
-        "SELECT * FROM submissions;";
-    );
-    (DB_INSERT_SUB) => (
-        "INSERT INTO submissions(ident, data) VALUES (?1, ?2);"
-    )
+    (DB_GET_SUBS) => ("SELECT * FROM submissions;");
+    (DB_INSERT_SUB) => ("INSERT INTO submissions(ident, data) VALUES (?1, ?2);")
 }
-
-
 
 ///
 /// Establishes a connection with a local SQLIte file
