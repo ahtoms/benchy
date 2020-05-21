@@ -39,10 +39,11 @@ impl Runner {
     /// to execute the current program
     /// It will latch onto the stdout and use it for processing
     /// TODO: time the execute
-    pub fn try_run(command: &Option<String>) {
+    pub fn try_run(command: &Option<String>, base_dir: &String) {
         //TODO: Unix only ATM, create variant for Windows later
         if let Some(ref s) = command {
             if let Ok(status) = Command::new("bash")
+                .env("BENCHY_SUB_DIR", base_dir)
                 .arg("-c")
                 .arg(s)
                 .status() {
@@ -54,9 +55,10 @@ impl Runner {
         }
     }
 
-    pub fn run_cmd_extract_output(command: &str) -> String {
+    pub fn run_cmd_extract_output(command: &str, base_dir: &String) -> String {
         let mut output = String::new();
         let proc = Command::new("bash")
+                        .env("BENCHY_SUB_DIR", base_dir)
                         .arg("-c")
                         .arg(command)
                         .stdout(Stdio::piped())
@@ -97,9 +99,9 @@ impl Runner {
                 }
             }
 
-            Runner::try_run(&self.prepare_cmd);
-            let data = Runner::run_cmd_extract_output(self.execute_cmd.as_ref());
-            Runner::try_run(&self.cleanup_cmd);
+            Runner::try_run(&self.prepare_cmd, &base_dir);
+            let data = Runner::run_cmd_extract_output(self.execute_cmd.as_ref(), &base_dir);
+            Runner::try_run(&self.cleanup_cmd, &base_dir);
             self.save_results(&sub.ident, &data);
 
         }
