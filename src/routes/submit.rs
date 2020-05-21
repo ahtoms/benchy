@@ -9,8 +9,10 @@ use crate::benchy::robjs::{SubmissionRequest, SubmissionResponse};
 /// SubmissionRequest can be passed to the Runner
 pub fn register_routes(app: App, tx: Sender<SubmissionRequest>) -> App {
     app.resource("/submit", move |r| {
+
         let t = tx; //We want to scope in tx for the closure
-        r.method(Method::POST).with(move |req: Json<SubmissionRequest>| -> Result<Json<SubmissionResponse>> {
+        r.method(Method::POST).with(move |req: Json<SubmissionRequest>| ->
+            Result<Json<SubmissionResponse>> {
             let data = req.into_inner();
             match t.send(data) {
                 Ok(_) => { Ok(Json(SubmissionResponse { result: 1 })) },

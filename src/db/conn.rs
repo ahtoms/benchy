@@ -12,7 +12,7 @@ macro_rules! DB_DEFAULTS {
             data TEXT
         );"
     );
-    (DB_GET_SUBS) => ("SELECT * FROM submissions;");
+    (DB_GET_SUBS) => ("SELECT DISTINCT ident, MAX(sub_id), data FROM submissions GROUP BY ident;");
     (DB_INSERT_SUB) => ("INSERT INTO submissions(ident, data) VALUES (?1, ?2);")
 }
 
@@ -54,8 +54,8 @@ pub fn get_subs(con: &Connection) -> Result<Vec<BenchmarkSubmission>> {
     let mut stmt = con.prepare(DB_DEFAULTS!(DB_GET_SUBS))?;
     let rows = stmt.query_map(NO_PARAMS, |row| {
         BenchmarkSubmission {
-            sub_id: row.get(0),
-            ident: row.get(1),
+            sub_id: row.get(1),
+            ident: row.get(0),
             data: row.get(2)
         }
     })?;
